@@ -20,8 +20,9 @@ import (
 )
 
 type requestHandler struct {
-	path string
-	ln   *Listener
+	path      string
+	ln        *Listener
+	ppEnabled bool // PROXY protocol enabled
 }
 
 var upgrader = &websocket.Upgrader{
@@ -44,12 +45,14 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
 	remoteAddr := conn.RemoteAddr()
-	if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
-		remoteAddr = &net.TCPAddr{
-			IP:   forwardedAddrs[0].IP(),
-			Port: int(0),
+	if !h.ppEnabled {
+		forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
+		if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
+			remoteAddr = &net.TCPAddr{
+				IP:   forwardedAddrs[0].IP(),
+				Port: int(0),
+			}
 		}
 	}
 
@@ -117,8 +120,9 @@ func ListenWS(ctx context.Context, address net.Address, port net.Port, streamSet
 
 	l.server = http.Server{
 		Handler: &requestHandler{
-			path: wsSettings.GetNormalizedPath(),
-			ln:   l,
+			path:      wsSettings.GetNormalizedPath(),
+			ln:        l,
+			ppEnabled: streamSettings.SocketSettings != nil && streamSettings.SocketSettings.AcceptProxyProtocol,
 		},
 		ReadHeaderTimeout: time.Second * 4,
 		MaxHeaderBytes:    2048,
