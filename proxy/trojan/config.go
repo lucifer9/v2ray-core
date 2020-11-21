@@ -3,7 +3,7 @@ package trojan
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	fmt "fmt"
 
 	"v2ray.com/core/common"
 	"v2ray.com/core/common/protocol"
@@ -13,6 +13,7 @@ import (
 type MemoryAccount struct {
 	Password string
 	Key      []byte
+	Flow     string
 }
 
 // AsAccount implements protocol.AsAccount.
@@ -22,6 +23,7 @@ func (a *Account) AsAccount() (protocol.Account, error) {
 	return &MemoryAccount{
 		Password: password,
 		Key:      key,
+		Flow:     a.Flow,
 	}, nil
 }
 

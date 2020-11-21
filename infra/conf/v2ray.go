@@ -11,6 +11,7 @@ import (
 	"v2ray.com/core/app/proxyman"
 	"v2ray.com/core/app/stats"
 	"v2ray.com/core/common/serial"
+	"v2ray.com/core/transport/internet/xtls"
 )
 
 var (
@@ -204,6 +205,9 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 		if err != nil {
 			return nil, err
 		}
+		if ss.SecurityType == serial.GetMessageType(&xtls.Config{}) && !strings.EqualFold(c.Protocol, "vless") && !strings.EqualFold(c.Protocol, "trojan") {
+			return nil, newError("XTLS doesn't supports " + c.Protocol + " for now.")
+		}
 		receiverSettings.StreamSettings = ss
 	}
 	if c.SniffingConfig != nil {
@@ -271,6 +275,9 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 		if err != nil {
 			return nil, err
 		}
+		if ss.SecurityType == serial.GetMessageType(&xtls.Config{}) && !strings.EqualFold(c.Protocol, "vless") && !strings.EqualFold(c.Protocol, "trojan") {
+			return nil, newError("XTLS doesn't supports " + c.Protocol + " for now.")
+		}
 		senderSettings.StreamSettings = ss
 	}
 
@@ -283,7 +290,15 @@ func (c *OutboundDetourConfig) Build() (*core.OutboundHandlerConfig, error) {
 	}
 
 	if c.MuxSettings != nil {
-		senderSettings.MultiplexSettings = c.MuxSettings.Build()
+		ms := c.MuxSettings.Build()
+		if ms != nil && ms.Enabled {
+			if ss := senderSettings.StreamSettings; ss != nil {
+				if ss.SecurityType == serial.GetMessageType(&xtls.Config{}) {
+					return nil, newError("XTLS doesn't support Mux for now.")
+				}
+			}
+		}
+		senderSettings.MultiplexSettings = ms
 	}
 
 	settings := []byte("{}")
