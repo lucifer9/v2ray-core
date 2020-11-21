@@ -25,11 +25,12 @@ import (
 )
 
 type Listener struct {
-	server  *http.Server
-	handler internet.ConnHandler
-	local   net.Addr
-	config  *Config
-	locker  *internet.FileLocker // for unix domain socket
+	server    *http.Server
+	handler   internet.ConnHandler
+	local     net.Addr
+	config    *Config
+	locker    *internet.FileLocker // for unix domain socket
+	ppEnabled bool                 // PROXY protocol enabled
 }
 
 func (l *Listener) Addr() net.Addr {
@@ -89,12 +90,13 @@ func (l *Listener) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 			Port: int(dest.Port),
 		}
 	}
-
-	forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
-	if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
-		remoteAddr = &net.TCPAddr{
-			IP:   forwardedAddrs[0].IP(),
-			Port: int(0),
+	if !l.ppEnabled {
+		forwardedAddrs := http_proto.ParseXForwardedFor(request.Header)
+		if len(forwardedAddrs) > 0 && forwardedAddrs[0].Family().IsIP() {
+			remoteAddr = &net.TCPAddr{
+				IP:   forwardedAddrs[0].IP(),
+				Port: int(0),
+			}
 		}
 	}
 
@@ -120,7 +122,8 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 				Name: address.Domain(),
 				Net:  "unix",
 			},
-			config: httpSettings,
+			config:    httpSettings,
+			ppEnabled: streamSettings.SocketSettings != nil && streamSettings.SocketSettings.AcceptProxyProtocol,
 		}
 	} else { // tcp
 		listener = &Listener{
@@ -129,7 +132,8 @@ func Listen(ctx context.Context, address net.Address, port net.Port, streamSetti
 				IP:   address.IP(),
 				Port: int(port),
 			},
-			config: httpSettings,
+			config:    httpSettings,
+			ppEnabled: streamSettings.SocketSettings != nil && streamSettings.SocketSettings.AcceptProxyProtocol,
 		}
 	}
 
