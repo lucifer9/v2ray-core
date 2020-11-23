@@ -32,15 +32,13 @@ func ParseDestination(dest string) (Destination, error) {
 		Address: AnyIP,
 		Port:    Port(0),
 	}
-
-	switch {
-	case strings.HasPrefix(dest, "tcp:"):
+	if strings.HasPrefix(dest, "tcp:") {
 		d.Network = Network_TCP
 		dest = dest[4:]
-	case strings.HasPrefix(dest, "udp:"):
+	} else if strings.HasPrefix(dest, "udp:") {
 		d.Network = Network_UDP
 		dest = dest[4:]
-	case strings.HasPrefix(dest, "unix:"):
+	} else if strings.HasPrefix(dest, "unix:") {
 		d = UnixDestination(DomainAddress(dest[5:]))
 		return d, nil
 	}

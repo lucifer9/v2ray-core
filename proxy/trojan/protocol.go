@@ -144,7 +144,7 @@ func (w *PacketWriter) WriteMultiBufferWithMetadata(mb buf.MultiBuffer, dest net
 	return nil
 }
 
-func (w *PacketWriter) writePacket(payload []byte, dest net.Destination) (int, error) { // nolint: unparam
+func (w *PacketWriter) writePacket(payload []byte, dest net.Destination) (int, error) {
 	buffer := buf.StackNew()
 	defer buffer.Release()
 

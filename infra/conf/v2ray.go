@@ -167,20 +167,19 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 		receiverSettings.Listen = c.ListenOn.Build()
 		listenDS := c.ListenOn.Family().IsDomain() && (c.ListenOn.Domain()[0] == '/' || c.ListenOn.Domain()[0] == '@')
 		listenIP := c.ListenOn.Family().IsIP() || (c.ListenOn.Family().IsDomain() && c.ListenOn.Domain() == "localhost")
-		switch {
-		case listenIP:
+		if listenIP {
 			// Listen on specific IP, must set PortRange
 			if c.PortRange == nil {
 				return nil, newError("Listen on specific ip without port in InboundDetour.")
 			}
 			// Listen on IP:Port
 			receiverSettings.PortRange = c.PortRange.Build()
-		case listenDS:
+		} else if listenDS {
 			if c.PortRange != nil {
 				// Listen on Unix Domain Socket, PortRange should be nil
 				receiverSettings.PortRange = nil
 			}
-		default:
+		} else {
 			return nil, newError("unable to listen on domain address: ", c.ListenOn.Domain())
 		}
 	}
