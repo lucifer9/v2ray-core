@@ -488,11 +488,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			return newError("failed to transfer response payload").Base(err).AtInfo()
 		}
 
-		// Indicates the end of response payload.
-		switch responseAddons.Flow {
-		default:
-		}
-
 		return nil
 	}
 
